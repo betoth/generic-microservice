@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: generic-microservice-postgres
+    command: ["postgres", "-c", "wal_level=logical"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  localstack:
+    image: localstack/localstack:4.14.0
+    container_name: generic-microservice-localstack
+    environment:
+      - SERVICES=${LOCALSTACK_SERVICES}
+      - AWS_DEFAULT_REGION=${AWS_REGION}
+      - DEBUG=${LOCALSTACK_DEBUG}
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+
+  kafka:
+    image: apache/kafka:3.7.2
+    container_name: generic-microservice-kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+
+  kafka-connect:
+    image: quay.io/debezium/connect:2.7
+    container_name: generic-microservice-kafka-connect
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: ${KAFKA_CONNECT_GROUP_ID}
+      CONFIG_STORAGE_TOPIC: ${KAFKA_CONNECT_CONFIG_TOPIC}
+      OFFSET_STORAGE_TOPIC: ${KAFKA_CONNECT_OFFSET_TOPIC}
+      STATUS_STORAGE_TOPIC: ${KAFKA_CONNECT_STATUS_TOPIC}
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    ports:
+      - "8083:8083"
+    depends_on:
+      - kafka
+      - postgres
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: generic-microservice-kafka-ui
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    ports:
+      - "8090:8080"
+    depends_on:
+      - kafka
+
+  filestash:
+    image: machines/filestash
+    container_name: generic-microservice-filestash
+    ports:
+      - "8334:8334"
+    depends_on:
+      - localstack
+
+volumes:
+  postgres_data:
+  localstack_data:

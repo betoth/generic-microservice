@@ -1,0 +1,34 @@
+# Environment files
+*.env
+
+# Binaries
+/bin/
+*.exe
+*.out
+/sqs-publisher
+/entry-publisher
+
+# Go build cache
+/vendor/
+
+# Docs
+/DOCS/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfvars
+**/*.tfvars.json
