@@ -143,7 +143,7 @@ All events share the same `event_data` structure:
 
 ## Infrastructure
 
-Services managed via `docker-compose.yml`:
+Services managed via `deploy/docker-compose.yml`:
 
 | Service        | Port  | Image                                          |
 |----------------|-------|------------------------------------------------|
@@ -280,5 +280,10 @@ make s3-cat ID=<snapshotID>
 - [x] `cmd/entry-processor`: reads Kafka (`entry.created`) → writes processing snapshot → sends SQS → inserts outbox (`entry.processing`)
 - [x] `cmd/entry-publisher`: reads SQS → writes published snapshot → inserts outbox (`entry.published`) → DLQ on error
 
-### Phase 4 — Idempotency
+### Phase 4 — MCP Server
+- [ ] MCP server exposing project documentation as resources
+- [ ] Resources: architecture overview, entry flow, event payload spec, error codes
+- [ ] Compatible with OpenCode and other MCP clients
+
+### Phase 5 — Idempotency
 - [ ] All Kafka consumers handle duplicate events idempotently

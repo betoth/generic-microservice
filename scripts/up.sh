@@ -51,14 +51,14 @@ echo "  generic-microservice"
 echo ""
 
 step "Starting services" \
-  docker-compose --env-file "$ENV_FILE" up -d postgres localstack kafka kafka-connect kafka-ui filestash
+  docker-compose --env-file "$ENV_FILE" -f deploy/docker-compose.yml up -d postgres localstack kafka kafka-connect kafka-ui filestash
 
 step "Waiting for LocalStack" \
   bash -c 'until curl -s http://localhost:4566/_localstack/health 2>/dev/null | grep -qE "\"s3\": \"(running|available)\""; do sleep 2; done'
 
 step "Provisioning infrastructure" \
-  bash -c "env $(grep -v '^#' "$ENV_FILE" | xargs) terraform -chdir=infra init -upgrade -no-color && \
-           env $(grep -v '^#' "$ENV_FILE" | xargs) terraform -chdir=infra apply -auto-approve -no-color"
+  bash -c "env $(grep -v '^#' "$ENV_FILE" | xargs) terraform -chdir=deploy/infra init -upgrade -no-color && \
+           env $(grep -v '^#' "$ENV_FILE" | xargs) terraform -chdir=deploy/infra apply -auto-approve -no-color"
 
 step "Waiting for Kafka Connect" \
   bash -c 'until curl -s http://localhost:8083/connectors > /dev/null 2>&1; do sleep 2; done'
@@ -67,7 +67,7 @@ step "Applying migrations" \
   migrate -path migrations -database "$DB_CONN_STRING" up
 
 step "Registering Debezium connector" \
-  bash -c "env $(grep -v '^#' "$ENV_FILE" | xargs) envsubst '\${POSTGRES_HOST} \${POSTGRES_PORT} \${POSTGRES_USER} \${POSTGRES_PASSWORD} \${POSTGRES_DB}' < debezium/outbox-connector.json | \
+  bash -c "env $(grep -v '^#' "$ENV_FILE" | xargs) envsubst '\${POSTGRES_HOST} \${POSTGRES_PORT} \${POSTGRES_USER} \${POSTGRES_PASSWORD} \${POSTGRES_DB}' < deploy/debezium/outbox-connector.json | \
     curl -sf -X PUT http://localhost:8083/connectors/outbox-connector/config \
     -H 'Content-Type: application/json' -d @-"
 
